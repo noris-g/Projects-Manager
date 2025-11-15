@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const { required } = require("nodemon/lib/config");
 
 const projectSchema = new mongoose.Schema(
   {
@@ -11,24 +12,45 @@ const projectSchema = new mongoose.Schema(
       type: String,
       trim: true,
     },
-    members: [{
-        userId:{
-            type:String,
-            required:true
-        }
-    }],
+    members: [
+      {
+        userId: {
+          type: String,
+          required: true,
+        },
+        role: {
+          type: String,
+          required: true,
+          validate: {
+            validator: function (value) {
+              // `this` is the member subdocument
+              const projectDoc = this.parent(); // the parent Project document
 
-    roles: [{
-        type:String,
-        required:true
-    }],
+              return (
+                Array.isArray(projectDoc.roles) &&
+                projectDoc.roles.includes(value)
+              );
+            },
+            message: (props) =>
+              `${props.value} is not a valid role for this project`,
+          },
+        },
+      },
+    ],
+
+    roles: [
+      {
+        type: String,
+        required: true,
+      },
+    ],
 
     events: {
-        idEvent:{type:mongoose.Schema.Types.ObjectId, ref:"event"}
+      idEvent: { type: mongoose.Schema.Types.ObjectId, ref: "event" },
     },
   },
   {
-    timestamps: true,  
+    timestamps: true,
   }
 );
 

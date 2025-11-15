@@ -44,7 +44,7 @@ console.log(user);
   return (
     <LayoutShell
       sidebar={<Sidebar auth0Id={user.sub} activePage={activePage} setActivePage={setActivePage} />}
-      projectsbar={<ProjectsBar setActivePage={setActivePage}/>}
+      projectsbar={<ProjectsBar auth0Id={user.sub} setActivePage={setActivePage}/>}
       topbar={<TopBar activePage={activePage} />}
     >
       {renderPage(activePage)}

@@ -54,11 +54,11 @@ const createProject = async (req, res) => {
   }
 };
 
-// GET /api/projects/my
+// GET /api/projects/projects
 // Returns projects for the current user using user.projects
 const getMyProjects = async (req, res) => {
   try {
-    const { auth0Id } = req.body;
+    const { auth0Id } = req.query;
     if (!auth0Id) {
       return res.status(401).json({ message: "Unauthorized: no auth0Id" });
     }

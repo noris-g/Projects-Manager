@@ -10,6 +10,6 @@ const {
 router.post("/", createProject);
 
 // Get all projects for the logged-in user
-router.get("/projects", getMyProjects);
+router.get("/", getMyProjects);
 
 module.exports = router;

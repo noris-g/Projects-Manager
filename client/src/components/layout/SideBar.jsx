@@ -14,10 +14,7 @@ const navItems = [
   { id: "settings", label: "Settings", icon: settingsImg },
 ];
 
-export default function Sidebar({ activePage, setActivePage, auth0Id }) {
-  const handleProjectCreated = (project) => {
-    console.log("New project created:", project);
-  };
+export default function Sidebar({ activePage, setActivePage }) {
   return (
     <aside className="w-16 md:w-20 bg-slate-900 text-white flex flex-col items-center py-4">
       <div className="bg-slate-700 w-12 h-12 flex items-center justify-center rounded-xl mb-6 text-xl font-bold">
@@ -39,10 +36,6 @@ export default function Sidebar({ activePage, setActivePage, auth0Id }) {
             <img src={item.icon}></img>
           </button>
         ))}
-        <NewProjectPopup
-          auth0Id={auth0Id}
-          onProjectCreated={handleProjectCreated}
-        />
       </nav>
 
       <div className="mt-auto w-10 h-10 rounded-full bg-slate-600 flex items-center justify-center text-sm">
