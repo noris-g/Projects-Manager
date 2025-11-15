@@ -1,20 +1,23 @@
 import React, { useState } from "react";
-import calendarImg from "../../assets/calendar-icon.svg"
-import groupImg from "../../assets/group-icon.svg"
-import chatImg from "../../assets/chat-icon.svg"
-import infoImg from "../../assets/info-icon.svg"
-import filesImg from "../../assets/files-icon.svg"
-import settingsImg from "../../assets/settings-icon.svg"
+import calendarImg from "../../assets/calendar-icon.svg";
+import chatImg from "../../assets/chat-icon.svg";
+import infoImg from "../../assets/info-icon.svg";
+import filesImg from "../../assets/files-icon.svg";
+import settingsImg from "../../assets/settings-icon.svg";
+import NewProjectPopup from "./NewProjectPopup";
 
 const navItems = [
   { id: "conversations", label: "Conversations", icon: chatImg },
-  { id: "files",         label: "Company files", icon: filesImg },
-  { id: "info",          label: "Information",   icon: infoImg },
-  { id: "calendar",      label: "Calendar",      icon: calendarImg },
-  { id: "settings",      label: "Settings",      icon: settingsImg },
+  { id: "files", label: "Company files", icon: filesImg },
+  { id: "info", label: "Information", icon: infoImg },
+  { id: "calendar", label: "Calendar", icon: calendarImg },
+  { id: "settings", label: "Settings", icon: settingsImg },
 ];
 
-export default function Sidebar({ activePage, setActivePage }) {
+export default function Sidebar({ activePage, setActivePage, auth0Id }) {
+  const handleProjectCreated = (project) => {
+    console.log("New project created:", project);
+  };
   return (
     <aside className="w-16 md:w-20 bg-slate-900 text-white flex flex-col items-center py-4">
       <div className="bg-slate-700 w-12 h-12 flex items-center justify-center rounded-xl mb-6 text-xl font-bold">
@@ -36,6 +39,10 @@ export default function Sidebar({ activePage, setActivePage }) {
             <img src={item.icon}></img>
           </button>
         ))}
+        <NewProjectPopup
+          auth0Id={auth0Id}
+          onProjectCreated={handleProjectCreated}
+        />
       </nav>
 
       <div className="mt-auto w-10 h-10 rounded-full bg-slate-600 flex items-center justify-center text-sm">
