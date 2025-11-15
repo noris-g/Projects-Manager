@@ -5,28 +5,30 @@ const User = require('../models/user.model')
 
 router.post("/save", saveUserFromAuth0);
 router.post("/signup", async (req, res) => {
-try {
-    console.log("GOT HERE1;")
-    const { name, nickname, email, auth0Id } = req.body;
-    console.log(name, nickname, email + "This is the request");
+  try {
+    const { email, auth0Id } = req.body;
 
-    if (!name || !nickname || !email) {
-    return res.status(400).json({
-        message: "All fields are required",
+    if (!email || !auth0Id) {
+      return res.status(400).json({
+        message: "Email and Auth0 ID are required",
       });
     }
 
-    // const userInUse = await User.findOne({ $or: [{ name }, { email }] });
-    // if (userInUse) {
-    //   const field = userInUse.name === name ? "name" : "Email";
-    //   return res.status(409).json({ message: `${field} already in use` });
-    // }
+    // Check if the user already exists
+    let existingUser = await User.findOne({ auth0Id });
 
+    if (existingUser) {
+      return res.status(200).json({
+        message: "User already exists",
+        user: existingUser,
+      });
+    }
+
+    // Create new user
     const newUser = new User({
-      username: name,
-      nickname,
       email,
-      auth0Id
+      auth0Id,
+      nickname: email.split("@")[0], // auto-generate a username
     });
 
     await newUser.save();
@@ -35,16 +37,17 @@ try {
       message: "Your account has been created!",
       user: {
         id: newUser._id,
-        name: newUser.name,
-        nickname: newUser.nickname,
+        email: newUser.email,
       },
     });
   } catch (error) {
-    res
-      .status(500)
-      .json({ message: "Internal Server Error loooolllll", errors: error.message });
+    res.status(500).json({
+      message: "Internal Server Error",
+      errors: error.message,
+    });
   }
-})
+});
+
 
 module.exports = router;
 
