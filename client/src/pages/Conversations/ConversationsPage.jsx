@@ -10,7 +10,7 @@ export default function ConversationsPage() {
 
   // Listen for messages from the server
   useEffect(() => {
-    const socket = io.connect("http://localhost:3001", {
+    const socket = io.connect("http://localhost:3000", {
       query: {
         userId,
       },
