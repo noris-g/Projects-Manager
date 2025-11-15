@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useAuth0 } from "@auth0/auth0-react";
 import Sidebar from "./components/layout/SideBar.jsx";
 import TopBar from "./components/layout/TopBar.jsx";
+import ProjectsBar from "./components/layout/ProjectsBar.jsx";
 import LayoutShell from "./components/layout/LayoutShell.jsx";
 import LoginButton from "./components/auth/LoginButton.jsx";
 import LogoutButton from "./components/auth/LogoutButton.jsx";
@@ -42,7 +43,8 @@ console.log(user);
 
   return (
     <LayoutShell
-      sidebar={<Sidebar activePage={activePage} setActivePage={setActivePage} />}
+      sidebar={<Sidebar auth0Id={user.sub} activePage={activePage} setActivePage={setActivePage} />}
+      projectsbar={<ProjectsBar setActivePage={setActivePage}/>}
       topbar={<TopBar activePage={activePage} />}
     >
       {renderPage(activePage)}
