@@ -27,17 +27,20 @@ const createProject = async (req, res) => {
 
     // Create the project and add current user as a member
     const project = await Project.create({
-      title,
-      description: description || "",
-      members: [
-        {
-          userId: user._id.toString(), // store Mongo _id as string
-        },
-      ],
-      roles: Array.isArray(roles) && roles.length > 0 ? roles : ["owner"],
-      // events will be empty by default
-    });
+  title,
+  description: description || "",
+  roles: Array.isArray(roles) && roles.length > 0 ? [...roles, "owner"] : ["owner"],
+  members: [], // empty on creation
+});
 
+// 2. Push user into members AFTER creation
+project.members.push({
+  userId: user._id.toString(),
+  role: "owner",
+});
+
+// 3. Save updated project
+await project.save();
     // Add project to the user's projects list
     user.projects.push(project._id);
     await user.save();
