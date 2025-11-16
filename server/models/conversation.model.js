@@ -22,7 +22,7 @@ const conversationSchema = new mongoose.Schema({
       },
       nickname: {
         type: String,
-        required: false,  // ✅ FIXED: Made optional in case some users don't have nicknames
+        required: true,
       },
     },
   ],
@@ -37,18 +37,6 @@ const conversationSchema = new mongoose.Schema({
         ref: "User",
         required: true,
       },
-      senderAuth0Id: {
-        type: String,
-        required: false,
-      },
-      senderNickname: {
-        type: String,
-        required: false,
-      },
-      timestamp: {
-        type: Date,
-        default: Date.now,
-      },
       flag: {
         flaggedByAI: {
           type: Boolean,
@@ -56,19 +44,11 @@ const conversationSchema = new mongoose.Schema({
         },
         reason: {
           type: String,
-          required: false,
-        },
-        severity: {
-          type: String,
-          enum: ["low", "medium", "high"],
-          required: false,
-        },
-        flaggedAt: {
-          type: Date,
-          required: false,
+          required: true,
         },
       },
     },
+    { timestamps: true },
   ],
 });
 

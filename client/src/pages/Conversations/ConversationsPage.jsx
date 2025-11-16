@@ -1,111 +1,99 @@
 import { useState, useRef, useEffect } from "react";
-import apiClient from "@/lib/apiClient";
 
 /**
- * ConversationsPage.jsx - Real Backend Integration
- * 
- * Props:
- * - selectedConversation: { _id, title, ... }
- * - auth0Id: current user's auth0Id
+ * ConversationsPage.jsx
+ *
+ * Messages can contain an optional `flag` object:
+ *   flag: {
+ *     flaggedByAI: true,
+ *     reason: "Misinformation about X",
+ *     severity: "high", // optional: low | medium | high
+ *     flaggedAt: Date
+ *   }
+ *
+ * The UI will render a small red banner below/inside the message bubble when flag is present.
+ * A real app would receive flags from the server (websocket / server push / polling).
  */
-export default function ConversationsPage({ selectedConversation, auth0Id }) {
-  const [messages, setMessages] = useState([]);
-  const [myMessage, setMyMessage] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const messagesEndRef = useRef(null);
-  const pollingIntervalRef = useRef(null);
 
-  // Scroll to bottom when messages change
+export default function ConversationsPage() {
+  const [messages, setMessages] = useState([
+    {
+      id: 1,
+      senderName: "Alice",
+      text: "Welcome to the chat!",
+      isOwn: false,
+      // example flagged message:
+      flag: {
+        flaggedByAI: true,
+        reason: "Contains outdated info about release date",
+        severity: "low",
+        flaggedAt: new Date(Date.now() - 1000 * 60 * 10), // 10 minutes ago
+      },
+    },
+    {
+      id: 2,
+      senderName: "You",
+      text: "Thanks!",
+      isOwn: true,
+    },
+  ]);
+
+  const [myMessage, setMyMessage] = useState("");
+  const [otherMessage, setOtherMessage] = useState("");
+  const [otherName, setOtherName] = useState("Alice");
+  const messagesEndRef = useRef(null);
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Load messages when conversation changes
-  useEffect(() => {
-    if (!selectedConversation?._id) {
-      setMessages([]);
-      return;
-    }
-
-    loadMessages();
-    
-    // Start polling for new messages every 3 seconds
-    pollingIntervalRef.current = setInterval(() => {
-      loadMessages(true); // silent reload
-    }, 3000);
-
-    // Cleanup polling on unmount or conversation change
-    return () => {
-      if (pollingIntervalRef.current) {
-        clearInterval(pollingIntervalRef.current);
-      }
-    };
-  }, [selectedConversation?._id]);
-
-  // Load messages from backend
-  const loadMessages = async (silent = false) => {
-    if (!selectedConversation?._id) return;
-
-    try {
-      if (!silent) setLoading(true);
-      setError(null);
-
-      const response = await apiClient.get(
-        `/conversations/${selectedConversation._id}/messages`
-      );
-
-      // Transform backend messages to frontend format
-      const transformedMessages = response.data.messages.map((msg) => ({
-        id: msg._id,
-        senderName: msg.senderNickname || "Unknown",
-        text: msg.content,
-        isOwn: msg.senderAuth0Id === auth0Id,
-        timestamp: msg.timestamp,
-        flag: msg.flag?.flaggedByAI ? msg.flag : null,
-      }));
-
-      setMessages(transformedMessages);
-    } catch (err) {
-      console.error("Error loading messages:", err);
-      if (!silent) {
-        setError("Failed to load messages");
-      }
-    } finally {
-      if (!silent) setLoading(false);
-    }
-  };
-
-  // Send message to backend
-  const sendMyMessage = async () => {
+  // Send a message as "You"
+  const sendMyMessage = () => {
     if (!myMessage.trim()) return;
-    if (!selectedConversation?._id) {
-      setError("No conversation selected");
-      return;
-    }
-
-    const messageText = myMessage.trim();
-    setMyMessage(""); // Clear input immediately for better UX
-
-    try {
-      await apiClient.post(
-        `/conversations/${selectedConversation._id}/messages`,
-        {
-          content: messageText,
-          auth0Id: auth0Id,
-        }
-      );
-
-      // Reload messages to get the new one
-      await loadMessages(true);
-    } catch (err) {
-      console.error("Error sending message:", err);
-      setError("Failed to send message");
-      setMyMessage(messageText); // Restore message on error
-    }
+    const newMsg = {
+      id: Date.now(),
+      senderName: "You",
+      text: myMessage.trim(),
+      isOwn: true,
+    };
+    setMessages((prev) => [...prev, newMsg]);
+    setMyMessage("");
   };
 
-  // Optional: acknowledge flag
+  // Send a message as simulated other user (for testing)
+  const sendOtherMessage = () => {
+    if (!otherMessage.trim()) return;
+    const newMsg = {
+      id: Date.now(),
+      senderName: otherName || "Unknown",
+      text: otherMessage.trim(),
+      isOwn: false,
+    };
+    setMessages((prev) => [...prev, newMsg]);
+    setOtherMessage("");
+  };
+
+  // Simulate receiving a server-side AI flag for a message.
+  // In production you'd call this when the server notifies the client (WS, SSE, poll).
+  const simulateServerFlag = (messageId, reason, severity = "medium") => {
+    setMessages((prev) =>
+      prev.map((m) =>
+        m.id === messageId
+          ? {
+              ...m,
+              flag: {
+                flaggedByAI: true,
+                reason,
+                severity,
+                flaggedAt: new Date(),
+              },
+            }
+          : m
+      )
+    );
+  };
+
+  // Optional: allow users to acknowledge the flag (UI only here)
   const acknowledgeFlag = (messageId) => {
     setMessages((prev) =>
       prev.map((m) =>
@@ -114,86 +102,50 @@ export default function ConversationsPage({ selectedConversation, auth0Id }) {
     );
   };
 
-  if (!selectedConversation) {
-    return (
-      <div className="flex items-center justify-center h-full bg-white rounded-xl shadow-md">
-        <div className="text-gray-500 text-center">
-          <p className="text-xl mb-2">No conversation selected</p>
-          <p className="text-sm">Select a conversation from the sidebar</p>
-        </div>
-      </div>
-    );
-  }
+  // Rendering helper for flag badge text color based on severity
+  const severityColor = (sev) => {
+    if (sev === "high") return "text-red-700";
+    if (sev === "low") return "text-yellow-700";
+    return "text-orange-700";
+  };
 
   return (
     <div className="flex flex-col h-full bg-white rounded-xl shadow-md">
       {/* HEADER */}
       <div className="px-4 py-3 border-b bg-slate-100 font-semibold text-lg">
-        {selectedConversation.title || "Conversation"}
+        Conversations
       </div>
-
-      {/* ERROR MESSAGE */}
-      {error && (
-        <div className="px-4 py-2 bg-red-50 border-b border-red-200 text-red-700 text-sm">
-          {error}
-          <button
-            onClick={() => setError(null)}
-            className="ml-2 text-xs underline"
-          >
-            Dismiss
-          </button>
-        </div>
-      )}
-
-      {/* LOADING STATE */}
-      {loading && (
-        <div className="px-4 py-2 bg-blue-50 border-b border-blue-200 text-blue-700 text-sm">
-          Loading messages...
-        </div>
-      )}
 
       {/* MESSAGES */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {messages.length === 0 && !loading && (
-          <div className="text-center text-gray-400 py-8">
-            No messages yet. Start the conversation!
-          </div>
-        )}
-
         {messages.map((msg) => (
           <div
             key={msg.id}
             className={`flex flex-col ${msg.isOwn ? "items-end" : "items-start"}`}
           >
-            {/* Sender name */}
+            {/* Sender name (for group chats) */}
             <div className="text-xs text-gray-500 mb-1">{msg.senderName}</div>
 
             {/* Message bubble */}
             <div className="relative max-w-[70%]">
               <div
                 className={`p-3 rounded-xl shadow wrap-break-words ${
-                  msg.isOwn
-                    ? "bg-sky-500 text-white rounded-br-none"
-                    : "bg-slate-100 text-black rounded-bl-none"
+                  msg.isOwn ? "bg-sky-500 text-white rounded-br-none" : "bg-slate-100 text-black rounded-bl-none"
                 }`}
               >
                 <p>{msg.text}</p>
                 <div className="text-[10px] text-right opacity-70 mt-1">
-                  {msg.timestamp
-                    ? new Date(msg.timestamp).toLocaleTimeString([], {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })
-                    : ""}
+                  {/* show formatted time if you keep it on messages, else this is place-holder */}
+                  {msg.time || ""}
                 </div>
               </div>
 
-              {/* AI Flag Banner */}
+              {/* If message is flagged by AI, show a red flag banner below the bubble */}
               {msg.flag && (
                 <div className="mt-2 flex items-start gap-2">
                   <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-md p-2">
                     <svg
-                      className="w-4 h-4 text-red-600 shrink-0"
+                      className="w-4 h-4 text-red-600"
                       viewBox="0 0 24 24"
                       fill="none"
                       stroke="currentColor"
@@ -203,29 +155,24 @@ export default function ConversationsPage({ selectedConversation, auth0Id }) {
                       <path d="M21 3l-6 5 6 5" stroke="currentColor" />
                     </svg>
 
-                    <div className="text-sm flex-1">
+                    <div className="text-sm">
                       <div className="font-semibold text-red-700">
-                        Flagged by AI
-                        {msg.flag.severity && ` (${msg.flag.severity})`}
+                        Flagged by AI {msg.flag.severity ? `(${msg.flag.severity})` : ""}
                       </div>
-                      <div className="text-xs text-gray-700">
-                        {msg.flag.reason}
+                      <div className="text-xs text-gray-700">{msg.flag.reason}</div>
+                      <div className="text-[10px] text-gray-500 mt-1">
+                        {new Date(msg.flag.flaggedAt).toLocaleString()}
+                        {msg.flagAcknowledged ? " • acknowledged" : ""}
                       </div>
-                      {msg.flag.flaggedAt && (
-                        <div className="text-[10px] text-gray-500 mt-1">
-                          {new Date(msg.flag.flaggedAt).toLocaleString()}
-                          {msg.flagAcknowledged && " • acknowledged"}
-                        </div>
-                      )}
                     </div>
 
-                    {/* Acknowledge button */}
+                    {/* Acknowledge button to mark as seen (optional) */}
                     {!msg.flagAcknowledged && (
                       <button
                         onClick={() => acknowledgeFlag(msg.id)}
                         className="ml-3 text-xs px-2 py-1 bg-white border rounded text-red-600 hover:bg-red-50"
                       >
-                        Ack
+                        Acknowledge
                       </button>
                     )}
                   </div>
@@ -238,27 +185,70 @@ export default function ConversationsPage({ selectedConversation, auth0Id }) {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* INPUT for message */}
+      {/* ACTION ROW: left for testing: simulate flag for last message */}
+      <div className="px-4 py-2 border-t bg-slate-50 flex gap-2 items-center">
+        <button
+          onClick={() =>
+            simulateServerFlag(
+              messages[messages.length - 1]?.id,
+              "AI detected possible incorrect statement about timelines",
+              "high"
+            )
+          }
+          className="text-sm px-3 py-1 bg-red-100 text-red-700 rounded"
+        >
+          Simulate AI Flag (last msg)
+        </button>
+
+        <div className="text-xs text-gray-500">Use this to see how flags appear</div>
+      </div>
+
+      {/* INPUT for Your message */}
       <div className="p-3 border-t flex gap-2">
         <input
           type="text"
           placeholder="Type your message..."
           value={myMessage}
           onChange={(e) => setMyMessage(e.target.value)}
-          className="flex-1 p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
+          className="flex-1 p-2 border rounded-lg"
           onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey) {
+            if (e.key === "Enter") {
               e.preventDefault();
               sendMyMessage();
             }
           }}
         />
-        <button
-          onClick={sendMyMessage}
-          disabled={!myMessage.trim()}
-          className="bg-sky-500 text-white px-4 py-2 rounded-lg hover:bg-sky-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition"
-        >
+        <button onClick={sendMyMessage} className="bg-sky-500 text-white px-4 py-2 rounded-lg">
           Send
+        </button>
+      </div>
+
+      {/* INPUT for Other person's message (testing) */}
+      <div className="p-3 border-t bg-slate-50 flex gap-2">
+        <input
+          type="text"
+          placeholder="Name (e.g., Alice)"
+          value={otherName}
+          onChange={(e) => setOtherName(e.target.value)}
+          className="w-32 p-2 border rounded-lg"
+        />
+
+        <input
+          type="text"
+          placeholder="Send message as other user..."
+          value={otherMessage}
+          onChange={(e) => setOtherMessage(e.target.value)}
+          className="flex-1 p-2 border rounded-lg"
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              sendOtherMessage();
+            }
+          }}
+        />
+
+        <button onClick={sendOtherMessage} className="bg-purple-500 text-white px-4 py-2 rounded-lg">
+          Send as Other
         </button>
       </div>
     </div>
