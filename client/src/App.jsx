@@ -1,26 +1,29 @@
 import { useState, useEffect } from "react";
-import axios from "axios"; // <-- ADD THIS
+import axios from "axios";
 import { useAuth0 } from "@auth0/auth0-react";
+
 import Sidebar from "./components/layout/SideBar.jsx";
 import TopBar from "./components/layout/TopBar.jsx";
 import ProjectsBar from "./components/layout/ProjectsBar.jsx";
 import LayoutShell from "./components/layout/LayoutShell.jsx";
-import LoginButton from "./components/auth/LoginButton.jsx";
-import LogoutButton from "./components/auth/LogoutButton.jsx";
-import Profile from "./components/auth/Profile.jsx";
 
 import ConversationsPage from "./pages/Conversations/ConversationsPage.jsx";
 import FilesPage from "./pages/Files/FilesPage.jsx";
 import CalendarPage from "./pages/Calendar/CalendarPage.jsx";
-import SettingsPage from "./pages/Settings/SettingsPage.jsx";
+import ToDoPage from "./pages/2do/2do.jsx";
 import InfoPage from "./pages/Info/InfoPage.jsx";
 
 export default function App() {
-  const { user, isAuthenticated, isLoading } = useAuth0();
-  const [activePage, setActivePage] = useState("groups");
+  const { user, isAuthenticated, isLoading, loginWithRedirect } = useAuth0();
+
+  const [activePage, setActivePage] = useState("conversations");
+
+  // Global state for selected project + conversation
+  const [selectedProject, setSelectedProject] = useState(null);
+  const [selectedConversation, setSelectedConversation] = useState(null);
 
   // ----------------------------------------------
-  // 🔥 SAVE USER TO DATABASE AFTER LOGIN/SIGNUP
+  // 🔥 Create or resolve user record on login
   // ----------------------------------------------
   useEffect(() => {
     if (isLoading) return;
@@ -33,7 +36,7 @@ export default function App() {
       })
       .then(() => console.log("User saved or already exists."))
       .catch((err) =>
-        console.log("Error saving user (likely already exists):", err.message)
+        console.log("Error saving user (likely exists):", err.message)
       );
   }, [isAuthenticated, isLoading, user]);
   // ----------------------------------------------
@@ -47,8 +50,6 @@ export default function App() {
   }
 
   if (!isAuthenticated) {
-    const { loginWithRedirect } = useAuth0();
-
     return (
       <div className="h-screen flex flex-col items-center justify-center bg-slate-900 text-white">
         <h1 className="text-3xl font-bold mb-4">Welcome to FactCheck Teams</h1>
@@ -57,7 +58,6 @@ export default function App() {
         </p>
 
         <div className="flex gap-4">
-          {/* Login button */}
           <button
             onClick={() => loginWithRedirect()}
             className="px-6 py-2 bg-sky-500 hover:bg-sky-600 rounded-lg font-medium"
@@ -65,7 +65,6 @@ export default function App() {
             Log In
           </button>
 
-          {/* Sign up button */}
           <button
             onClick={() =>
               loginWithRedirect({
@@ -91,26 +90,41 @@ export default function App() {
         />
       }
       projectsbar={
-        <ProjectsBar auth0Id={user.sub} setActivePage={setActivePage} />
+        <ProjectsBar
+          auth0Id={user.sub}
+          setActivePage={setActivePage}
+          setSelectedProject={setSelectedProject}
+          setSelectedConversation={setSelectedConversation}
+        />
       }
       topbar={<TopBar activePage={activePage} />}
     >
-      {renderPage(activePage)}
+      {renderPage(activePage, selectedProject, user.sub)}
     </LayoutShell>
   );
 }
 
-function renderPage(page) {
+// ------------------------------------------------------
+// 🔥 FIXED — renderPage now receives auth0Id correctly
+// ------------------------------------------------------
+function renderPage(page, selectedProject, auth0Id) {
   switch (page) {
     case "conversations":
       return <ConversationsPage />;
+
     case "files":
       return <FilesPage />;
+
     case "calendar":
       return <CalendarPage />;
-    case "settings":
-      return <SettingsPage />;
+
+    case "todo":
+      return <ToDoPage auth0Id={auth0Id} selectedProject={selectedProject} />;
+
     case "info":
       return <InfoPage />;
+
+    default:
+      return null;
   }
 }

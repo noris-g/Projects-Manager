@@ -3,7 +3,7 @@ import calendarImg from "../../assets/calendar-icon.svg";
 import chatImg from "../../assets/chat-icon.svg";
 import infoImg from "../../assets/info-icon.svg";
 import filesImg from "../../assets/files-icon.svg";
-import settingsImg from "../../assets/settings-icon.svg";
+import todoImg from "../../assets/todo-icon.svg";
 import NewProjectPopup from "./NewProjectPopup";
 
 const navItems = [
@@ -11,7 +11,7 @@ const navItems = [
   { id: "files", label: "Company files", icon: filesImg },
   { id: "info", label: "Information", icon: infoImg },
   { id: "calendar", label: "Calendar", icon: calendarImg },
-  { id: "settings", label: "Settings", icon: settingsImg },
+  { id: "todo", label: "Settings", icon: todoImg },
 ];
 
 export default function Sidebar({ activePage, setActivePage }) {

@@ -9,7 +9,7 @@ export default function ProjectsBar({
   auth0Id,
 }) {
   const [projects, setProjects] = useState([]);
-  const [openProjectId, setOpenProjectId] = useState(null); // dropdown state
+  const [openProjectId, setOpenProjectId] = useState(null);
 
   useEffect(() => {
     apiClient
@@ -24,16 +24,29 @@ export default function ProjectsBar({
   const getAllowedConversations = (project) => {
     const me = project.members.find((m) => m.auth0Id === auth0Id);
 
-    if (!me) return []; // should not happen normally
+    if (!me) return [];
 
-    const myRole = me.role; // "owner", "manager", "member" etc.
+    const myRole = me.role;
 
     return project.conversations.filter((conv) => {
       if (!conv.restrictedToRoles || conv.restrictedToRoles.length === 0) {
-        return true; // public conversation inside project
+        return true;
       }
       return conv.restrictedToRoles.includes(myRole);
     });
+  };
+
+  // ⭐ NEW — handle project click
+  const handleProjectClick = (project, isOpen) => {
+    // Select this project globally
+    setSelectedProject(project);
+    setSelectedConversation(null);
+
+    // Navigate to To-Do page
+    setActivePage("todo");
+
+    // Toggle dropdown open/close
+    setOpenProjectId(isOpen ? null : project._id);
   };
 
   return (
@@ -50,9 +63,7 @@ export default function ProjectsBar({
               {/* Project button */}
               <button
                 className="w-full text-left p-2 rounded-lg hover:bg-slate-100 transition font-medium"
-                onClick={() =>
-                  setOpenProjectId(isOpen ? null : project._id)
-                }
+                onClick={() => handleProjectClick(project, isOpen)}
               >
                 {project.title}
               </button>

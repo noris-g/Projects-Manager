@@ -159,8 +159,34 @@ const addUserToProject = async (req, res) => {
   }
 };
 
+
+// GET /api/projects/:projectId
+const getProjectById = async (req, res) => {
+  try {
+    const { projectId } = req.params;
+
+    const project = await Project.findById(projectId).populate({
+      path: "members.userId",
+      model: "User",
+    });
+
+    if (!project) {
+      return res.status(404).json({ message: "Project not found" });
+    }
+
+    return res.status(200).json({ project });
+  } catch (err) {
+    console.error("getProjectById error:", err);
+    return res.status(500).json({
+      message: "Internal server error",
+      error: err.message,
+    });
+  }
+};
+
 module.exports = {
   createProject,
   getMyProjects,
+  getProjectById,
   addUserToProject,
 };
