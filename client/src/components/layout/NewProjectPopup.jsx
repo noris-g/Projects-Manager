@@ -122,6 +122,7 @@ export default function NewProjectPopup({ auth0Id, onProjectCreated }) {
     setIsSubmitting(true);
 
     try {
+      console.log(members);
       const payload = {
         auth0Id,
         title: title.trim(),

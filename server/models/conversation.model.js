@@ -4,10 +4,11 @@ const conversationSchema = new mongoose.Schema({
   users: [
     {
       id: {
-        type: mongoose.Schema.Types.ObjectId,
+        type: String,
         ref: "User",
+        required: true,
       },
-      username: {
+      nickname: {
         type: String,
         required: true,
       },
@@ -24,11 +25,19 @@ const conversationSchema = new mongoose.Schema({
         ref: "User",
         required: true,
       },
+      flaggedIncorrect: {
+        type: Boolean,
+        default: false,
+      },
+      flaggedMessage: {
+        type: String,
+        default: "",
+      },
     },
     { timestamps: true },
   ],
 });
 
-const Conversation = mongoose.model("Conversation", conversationaaSchema);
+const Conversation = mongoose.model("Conversation", conversationSchema);
 
 module.exports = Conversation;

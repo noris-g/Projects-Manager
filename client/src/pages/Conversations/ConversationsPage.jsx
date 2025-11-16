@@ -129,7 +129,7 @@ export default function ConversationsPage() {
             {/* Message bubble */}
             <div className="relative max-w-[70%]">
               <div
-                className={`p-3 rounded-xl shadow break-words ${
+                className={`p-3 rounded-xl shadow wrap-break-words ${
                   msg.isOwn ? "bg-sky-500 text-white rounded-br-none" : "bg-slate-100 text-black rounded-bl-none"
                 }`}
               >
