@@ -63,37 +63,6 @@ Includes:
 
 ---
 
-## 🗂 Folder Structure
-
-\`\`\`
-unihack2025/
-│
-├── src/
-│   ├── components/
-│   │   ├── ChatWindow.jsx
-│   │   ├── InfoPage.jsx
-│   │   └── MessageBubble.jsx
-│   │
-│   ├── ai/
-│   │   ├── geminiAgent.js
-│   │   └── geminiParser.js
-│   │
-│   ├── hooks/
-│   │   └── useLocalMessages.js
-│   │
-│   ├── lib/
-│   │   └── apiClient.js
-│   │
-│   ├── App.jsx
-│   └── main.jsx
-│
-├── public/
-├── README.md
-└── package.json
-\`\`\`
-
----
-
 ## 🧠 AI Logic Breakdown
 
 ### 1️⃣ Intent Detection Prompt
