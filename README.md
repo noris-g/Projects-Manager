@@ -128,16 +128,6 @@ and can be one of: <profit> <agenda> <tasks> <list> <other>.
 
 ---
 
-## 🛠 Installation
-
-\`\`\`bash
-git clone https://github.com/your-username/unihack2025.git
-cd unihack2025
-npm install
-\`\`\`
-
----
-
 ## ▶️ Running the App
 
 \`\`\`bash
@@ -190,15 +180,3 @@ No Promises or non-serializable data structures are stored.
 - Real-time WhatsApp/Slack connectors  
 - Voice-to-intent module  
 
----
-
-## 👤 Authors
-
-- **Diana Grozav** — project lead, architecture, AI logic, full-stack  
-- Contributors — UniHack 2025 team  
-
----
-
-## 🏆 License
-
-MIT License — open for personal and commercial usage.
