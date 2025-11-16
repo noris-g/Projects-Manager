@@ -99,7 +99,7 @@ console.log(user)
       }
       topbar={<TopBar activePage={activePage} />}
     >
-      {renderPage(activePage, selectedProject, user.sub)}
+      {renderPage(activePage, selectedProject, user.sub, selectedConversation)}
     </LayoutShell>
   );
 }
@@ -107,10 +107,10 @@ console.log(user)
 // ------------------------------------------------------
 // 🔥 FIXED — renderPage now receives auth0Id correctly
 // ------------------------------------------------------
-function renderPage(page, selectedProject, auth0Id) {
+function renderPage(page, selectedProject, auth0Id, selectedConversation) {
   switch (page) {
     case "conversations":
-      return <ConversationsPage />;
+      return <ConversationsPage auth0Id={auth0Id} selectedConversation={selectedConversation} />;
 
     case "files":
       return <FilesPage />;

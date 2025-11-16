@@ -165,7 +165,7 @@ export default function ProjectsBar({
                       className="text-left p-1 rounded hover:bg-slate-200 text-sm"
                       onClick={() => {
                         setSelectedProject(project);
-                        setSelectedConversation(conv);
+                        setSelectedConversation(conv._id);
                         setActivePage("conversations");
                       }}
                     >
