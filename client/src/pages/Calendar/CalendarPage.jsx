@@ -43,6 +43,22 @@ export default function CalendarPage() {
       timeFrom: "13:00",
       timeTo: "15:00",
     },
+    {
+      id: 3,
+      title: "Teambuilding Karaoke",
+      date: new Date(today.getFullYear(), today.getMonth(), today.getDate() -10),
+      roles: ["Everyone"],
+      timeFrom: "16:00",
+      timeTo: "20:00",
+    },
+    {
+      id: 4,
+      title: "Budget Discussion",
+      date: new Date(today.getFullYear(), today.getMonth(), today.getDate() -6),
+      roles: ["Manager", "CEO"],
+      timeFrom: "10:00",
+      timeTo: "14:00",
+    },
   ]);
 
   const monthNames = [
