@@ -8,77 +8,127 @@ export default function ProjectsBar({
   setSelectedConversation,
   auth0Id,
 }) {
-  const [projects, setProjects] = useState([]);
+  const [projects, setProjects] = useState([
+    {
+      _id: 1,
+      title: "Proiect Craciun",
+    },
+    {
+      _id: 2,
+      title: "Proiect Iarna",
+    },
+    {
+      _id: 3,
+      title: "Proiect Birou",
+    },
+    {
+      _id: 4,
+      title: "Proiect Foto",
+    },
+    {
+      _id: 5,
+      title: "Proiect Demo",
+    },
+  ]);
   const [openProjectId, setOpenProjectId] = useState(null);
+  const [conversationsLoaded, setConversationsLoaded] = useState(new Set());
 
-  useEffect(() => {
-    apiClient
-      .get("/projects/", { params: { auth0Id } })
-      .then((res) => {
-        setProjects(res.data.projects);
-      })
-      .catch((err) => console.log(err));
-  }, []);
+  // ✅ FETCH PROJECTS (wait for auth0Id)
+  // useEffect(() => {
+  //   if (!auth0Id) return;
 
-  useEffect(() => {
-  if (projects.length === 0) return;
+  //   apiClient
+  //     .get("/projects", { params: { auth0Id } })
+  //     .then((res) => {
+  //       setProjects(res.data.projects);
+  //     })
+  //     .catch((err) => {
+  //       console.log(
+  //         "Error loading projects:",
+  //         err.response?.data || err.message
+  //       );
+  //     });
+  // }, [auth0Id]);
 
-  projects.forEach((project, index) => {
-    apiClient
-      .get("/projects/conversations", {
-        params: { projectId: project._id },
-      })
-      .then((res) => {
-        setProjects((prev) => {
-          const updated = [...prev];
-          updated[index] = {
-            ...updated[index],
-            conversations: res.data,
-          };
-          return updated;
-        });
-      })
-      .catch((err) => console.log(err));
-  });
-}, [projects.length]);
+  // ✅ FIXED: Fetch conversations only for projects that haven't been loaded yet
+  // useEffect(() => {
+  //   if (projects.length === 0) return;
 
-  // Determine what conversations the user may access
-  const getAllowedConversations = (project) => {
-  if (!project) return [];
+  //   projects.forEach((project) => {
+  //     if (!project?._id) return;
 
-  const me = project.members?.find((m) => m.userId === auth0Id);
-  if (!me) return [];
+  //     // Skip if already loaded conversations for this project
+  //     if (conversationsLoaded.has(project._id)) return;
 
-  const myRole = me.role;
+  //     console.log("😎 fetching convos for project", project._id);
+  //     apiClient
+  //       .get(`/projects/${project._id}/conversations`)
+  //       .then((res) => {
+  //         console.log("%%%%%%%%%%%%%%%%%%%%%% conversations:", res.data);
 
-  const conversations = Array.isArray(project.conversations)
-    ? project.conversations
-    : [];
+  //         // Mark this project as loaded
+  //         setConversationsLoaded((prev) => new Set([...prev, project._id]));
 
-  return conversations.filter((conv) => {
-    const restricted = conv.restrictedToRoles;
+  //         // Update the specific project with its conversations
+  //         setProjects((prev) =>
+  //           prev.map((p) =>
+  //             p._id === project._id ? { ...p, conversations: res.data } : p
+  //           )
+  //         );
+  //       })
+  //       .catch((err) =>
+  //         console.log(
+  //           "Error loading conversations:",
+  //           err.response?.data || err.message
+  //         )
+  //       );
+  //   });
+  // }, [projects, conversationsLoaded]);
 
-    if (!Array.isArray(restricted) || restricted.length === 0) {
-      return true; // no restriction => visible to everyone
-    }
+  // ✅ Determine what conversations the user may access
+  // const getAllowedConversations = (project) => {
+  //   if (!project) return [];
 
-    return restricted.includes(myRole);
-  });
-};
+  //   const me = project.members?.find((m) => m.userId === auth0Id);
+  //   if (!me) return [];
 
+  //   const myRole = me.role;
 
-  // ⭐ NEW — handle project click
+  //   const conversations = Array.isArray(project.conversations)
+  //     ? project.conversations
+  //     : [];
+
+  //   return conversations.filter((conv) => {
+  //     const restricted = conv.restrictedToRoles;
+
+  //     // No restriction or empty array => visible to everyone
+  //     if (!Array.isArray(restricted) || restricted.length === 0) {
+  //       return true;
+  //     }
+
+  //     // Check if user's role is in the restricted roles
+  //     return restricted.includes(myRole);
+  //   });
+  // };
+
+  // ⭐ handle project click
   const handleProjectClick = (project, isOpen) => {
-    // Select this project globally
     setSelectedProject(project);
     setSelectedConversation(null);
-
-    // Navigate to To-Do page
     setActivePage("todo");
-
-    // Toggle dropdown open/close
     setOpenProjectId(isOpen ? null : project._id);
   };
+
+  const allowedConvs = [
+    {
+      _id: 6,
+      title: "Managers"
+    },
+    {
+      _id: 7,
+      title: "All"
+    },
+  ];
 
   return (
     <div className="flex flex-col gap-2 justify-between h-full">
@@ -86,9 +136,9 @@ export default function ProjectsBar({
         <h2 className="text-xl font-semibold mb-2">Your Projects</h2>
 
         {projects.map((project) => {
-          console.log("**************", project);
           const isOpen = openProjectId === project._id;
-          const allowedConvs = getAllowedConversations(project);
+          // const allowedConvs = getAllowedConversations(project);
+          console.log("************** allowedConvs", allowedConvs);
 
           return (
             <div key={project._id} className="flex flex-col">
@@ -119,7 +169,7 @@ export default function ProjectsBar({
                         setActivePage("conversations");
                       }}
                     >
-                      {conv.name}
+                      {conv.title}
                     </button>
                   ))}
                 </div>

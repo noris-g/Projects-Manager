@@ -5,6 +5,6 @@ const {
   getConversationsByProject
 } = require("../controllers/conversation.controller");
 
-router.get("/", getConversationsByProject);
+router.get("/conversations", getConversationsByProject);
 
 module.exports = router;

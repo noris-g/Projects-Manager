@@ -36,10 +36,10 @@ export default function TodoPage({ auth0Id, selectedProject }) {
   // 🔥 Load tasks for this project
   useEffect(() => {
     if (!selectedProject?._id) return;
-
     apiClient
       .get(`/tasks/project/${selectedProject._id}`)
       .then((res) => {setTasks(res.data.tasks);console.log(res)})
+
       .catch((err) => console.error("Error loading tasks:", err));
   }, [selectedProject]);
 

@@ -1,9 +1,10 @@
+// project.controller.js
 const Project = require("../models/project.model");
 const User = require("../models/user.model");
 const Conversation = require("../models/conversation.model");
 
 // POST /api/projects
-// Body: { title, description?, roles? }
+// Body: { title, description?, roles?, members? }
 const createProject = async (req, res) => {
   try {
     const { auth0Id } = req.body;
@@ -26,7 +27,7 @@ const createProject = async (req, res) => {
         .json({ message: "User not found in database for this auth0Id" });
     }
 
-    // Create the project and add current user as a member
+    // Create the project
     const project = await Project.create({
       title,
       description: description || "",
@@ -37,13 +38,16 @@ const createProject = async (req, res) => {
       members: [], // empty on creation
     });
 
-    const { members } = req.body;
+    // ✅ UPDATED: safely get members from body (might be undefined)
+    const { members = [] } = req.body;
 
+    // ✅ UPDATED: add creator as owner directly on this project instance
     project.members.push({
       userId: user.auth0Id.toString(),
       role: "owner",
     });
 
+    // ✅ UPDATED: add additional members (if provided)
     for (let i = 0; i < members.length; i++) {
       await addUserToProjectService({
         projectId: project._id,
@@ -52,14 +56,17 @@ const createProject = async (req, res) => {
       });
     }
 
-    // 2. Push user into members AFTER creation
-
+    // ✅ UPDATED: create conversations for this project
     const conversations = await createProjectConversationsService(project._id);
 
-    conversations.map((conv) => conv._id);
-    // 3. Save updated project
+    // ✅ NEW: attach conversation ids to the project document
+    const conversationIds = conversations.map((conv) => conv._id);
+    project.conversations = conversationIds;
+
+    // ✅ UPDATED: save updated project (with members + conversations)
     await project.save();
-    // Add project to the user's projects list
+
+    // Add project to the creator's projects list
     user.projects.push(project._id);
     await user.save();
 
@@ -92,7 +99,9 @@ async function addUserToProjectService({ projectId, email, role }) {
     throw new Error(`${role} is not a valid role for this project`);
   }
 
-  const alreadyMember = project.members.some((m) => m.userId === user.auth0Id);
+  const alreadyMember = project.members.some(
+    (m) => m.userId === user.auth0Id
+  );
   if (!alreadyMember) {
     project.members.push({
       userId: user.auth0Id,
@@ -113,6 +122,7 @@ async function addUserToProjectService({ projectId, email, role }) {
   return { project, user };
 }
 
+// ✅ UPDATED: set restrictedToRoles for role-specific conversations
 async function createProjectConversationsService(projectId) {
   if (!projectId) {
     throw new Error("projectId is required.");
@@ -139,7 +149,6 @@ async function createProjectConversationsService(projectId) {
 
   // Map auth0Id -> User doc
   const userByAuth0Id = new Map(users.map((u) => [u.auth0Id, u]));
-  console.log("THESE ARE THE USERS: ", userByAuth0Id);
 
   // 3. Group users by role
   const roleGroups = {}; // { role: [User] }
@@ -160,13 +169,14 @@ async function createProjectConversationsService(projectId) {
 
   const conversationsToInsert = [];
 
-  // One conversation per role
+  // One conversation per role (restricted to that role only)
   for (const [role, usersForRole] of Object.entries(roleGroups)) {
     if (!usersForRole.length) continue;
 
     conversationsToInsert.push({
       project: projectId,
       title: role,
+      restrictedToRoles: [role], // ✅ NEW: restrict to this role
       users: usersForRole.map((u) => ({
         id: u.auth0Id,
         nickname: u.nickname,
@@ -175,7 +185,7 @@ async function createProjectConversationsService(projectId) {
     });
   }
 
-  // Conversation with ALL users (unique)
+  // Conversation with ALL users (no restrictions)
   const uniqueUsers = Array.from(
     new Map(users.map((u) => [u.auth0Id.toString(), u])).values()
   );
@@ -183,13 +193,12 @@ async function createProjectConversationsService(projectId) {
   conversationsToInsert.push({
     project: projectId,
     title: "Everyone",
+    restrictedToRoles: [], // ✅ NEW: empty array = no restrictions
     users: uniqueUsers.map((u) => ({
       id: u.auth0Id,
       nickname: u.nickname,
     })),
     messages: [],
-    // project: project._id,
-    // label: "all",
   });
 
   const createdConversations = await Conversation.insertMany(
@@ -215,7 +224,6 @@ const getMyProjects = async (req, res) => {
         .status(404)
         .json({ message: "User not found in database for this auth0Id" });
     }
-    console.log(user);
     return res.status(200).json({
       count: user.projects.length,
       projects: user.projects,
@@ -233,18 +241,19 @@ const addUserToProject = async (req, res) => {
     const { projectId } = req.params;
     const { email, role } = req.body;
 
-    if (!auth0Id || !role) {
+    // ✅ UPDATED: check email, not auth0Id (we don't have it in body)
+    if (!email || !role) {
       return res
         .status(400)
-        .json({ message: "Both auth0Id and role are required." });
+        .json({ message: "Both email and role are required." });
     }
 
     const user = await User.findOne({ email });
-    const auth0Id = user?.auth0Id;
-
     if (!user) {
       return res.status(404).json({ message: `${email} not found.` });
     }
+
+    const auth0Id = user.auth0Id; // ✅ NEW: get auth0Id from user
 
     // 2. Find project
     const project = await Project.findById(projectId);
@@ -301,26 +310,17 @@ const addUserToProject = async (req, res) => {
 const getProjectById = async (req, res) => {
   try {
     const { projectId } = req.params;
+    console.log("getting for ", projectId);
 
-    const project = await Project.find({ auth0Id: projectId });
-    if (!project) {
-      throw new Error("Project not found");
-    }
-
-    // members.userId holds auth0Id strings
-    const members = project?.members || [];
-    const auth0Ids = members.map((m) => m.userId);
-
-    // get all users whose auth0Id is in that list
-    const users = await User.find({ auth0Id: { $in: auth0Ids } });
-
-    // handy map: auth0Id -> user document
-    const userByAuth0Id = new Map(users.map((u) => [u.auth0Id, u]));
+    // ✅ UPDATED: simple, safe lookup
+    const project = await Project.findById(projectId);
 
     if (!project) {
       return res.status(404).json({ message: "Project not found" });
     }
 
+    // If later you want member user data, you can enrich here,
+    // but for now just return the project document.
     return res.status(200).json({ project });
   } catch (err) {
     console.error("getProjectById error:", err);

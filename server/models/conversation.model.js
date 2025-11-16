@@ -9,6 +9,10 @@ const conversationSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  restrictedToRoles: {
+    type: [String],
+    default: [],
+  },
   users: [
     {
       id: {

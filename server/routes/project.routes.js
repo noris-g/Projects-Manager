@@ -14,8 +14,11 @@ router.post("/", createProject);
 // Get all projects for logged-in user
 router.get("/", getMyProjects);
 
-// ⭐ NEW — Get one project by ID (with populated members)
+// ✅ FIXED: Specific routes MUST come before parametric routes
+// Get conversations for a specific project
+router.get("/:projectId/conversations", getProjectConversations);
+
+// Get one project by ID
 router.get("/:projectId", getProjectById);
-router.get("/conversations", getProjectConversations);
 
 module.exports = router;
