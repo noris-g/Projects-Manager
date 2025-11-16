@@ -14,7 +14,7 @@ export async function getResponse(message) {
 
   const prompt = `
 return a single word <match>, where <match> is the subject inside '<msg>' tags,
-and can be one of the following: <profit> <agenda> <tasks> <list> <> <other>. you must be very careful
+and can be one of the following: <profit> <agenda> <tasks> <list> <other>. you must be very careful
 <msg>${message}</msg>
   `.trim();
 
@@ -23,7 +23,11 @@ and can be one of the following: <profit> <agenda> <tasks> <list> <> <other>. yo
   const text = response.text();
 
   let secondPrompt;
-  if (text.includes("profit")) {
+  if (text.includes("other")) {
+    secondPrompt = `
+    
+    `.trim();
+  } else if (text.includes("profit")) {
     secondPrompt = `
     Extract profit-related information from the message between <docs> tags answering the question between the <msg> tags.
     have a professional tone.
@@ -42,10 +46,6 @@ November,102000,33000,17000,4800,50000,11000,8200,17500,8200,4400,156800,100300,
 December,110000,35000,18000,5000,52000,11500,8500,18000,8500,4500,168000,105000,63000`}</docs>
 
 <msg>${message}</msg>
-    `.trim();
-  } else {
-    secondPrompt = `
-    Respond in a professional manner to the message between <msg> tags. <msg>${message}</msg>
     `.trim();
   }
 
