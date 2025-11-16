@@ -1,5 +1,6 @@
 const Project = require("../models/project.model");
 const User = require("../models/user.model");
+const Conversation = require("../models/conversation.model");
 
 // POST /api/projects
 // Body: { title, description?, roles? }
@@ -36,11 +37,23 @@ const createProject = async (req, res) => {
       members: [], // empty on creation
     });
 
+        const { members } = req.body;
+
+    for (let i = 0; i < members.length; i++) {
+      await addUserToProjectService({
+        projectId: project._id,
+        email: members[i].email,
+        role: members[i].role,
+      });
+    }
+
     // 2. Push user into members AFTER creation
     project.members.push({
-      userId: user._id.toString(),
+      userId: user.auth0Id.toString(),
       role: "owner",
     });
+
+    await createProjectConversationsService(project._id);
 
     // 3. Save updated project
     await project.save();
@@ -59,6 +72,129 @@ const createProject = async (req, res) => {
       .json({ message: "Internal server error", error: err.message });
   }
 };
+
+async function addUserToProjectService({ projectId, email, role }) {
+  // Find user by email
+  const user = await User.findOne({ email });
+  if (!user) {
+    throw new Error(`User with email ${email} not found`);
+  }
+
+  const project = await Project.findById(projectId);
+  if (!project) {
+    throw new Error(`Project ${projectId} not found`);
+  }
+
+  // Optional: check role against project.roles
+  if (!Array.isArray(project.roles) || !project.roles.includes(role)) {
+    throw new Error(`${role} is not a valid role for this project`);
+  }
+
+  const alreadyMember = project.members.some((m) => m.userId === user.auth0Id);
+  if (!alreadyMember) {
+    project.members.push({
+      userId: user.auth0Id,
+      role,
+    });
+  }
+
+  const hasProject = user.projects.some(
+    (pId) => pId.toString() === project._id.toString()
+  );
+  if (!hasProject) {
+    user.projects.push(project._id);
+  }
+
+  await project.save();
+  await user.save();
+
+  return { project, user };
+}
+
+async function createProjectConversationsService(projectId) {
+  if (!projectId) {
+    throw new Error("projectId is required.");
+  }
+
+  // 1. Load project with members
+  const project = await Project.findById(projectId);
+  if (!project) {
+    throw new Error("Project not found.");
+  }
+
+  const members = project.members || [];
+  if (members.length === 0) {
+    throw new Error("Project has no members to create conversations for.");
+  }
+
+  // 2. Load all User docs based on auth0Id from members.userId
+  const auth0Ids = members.map((m) => m.userId);
+  const users = await User.find({ auth0Id: { $in: auth0Ids } });
+
+  if (!users.length) {
+    throw new Error("No matching users found for project members.");
+  }
+  
+  // Map auth0Id -> User doc
+  const userByAuth0Id = new Map(users.map((u) => [u.auth0Id, u]));
+  console.log("THESE ARE THE USERS: ",userByAuth0Id);
+
+  // 3. Group users by role
+  const roleGroups = {}; // { role: [User] }
+
+  for (const member of members) {
+    const user = userByAuth0Id.get(member.userId);
+    console.log("***************************************\n", user, "***********************************")
+    if (!user || !member.role) continue;
+
+    if (!roleGroups[member.role]) {
+      roleGroups[member.role] = [];
+    }
+
+    if (!roleGroups[member.role].some((u) => u.authId.equals(user.auth0Id))) {
+      roleGroups[member.role].push(user);
+    }
+  }
+
+  const conversationsToInsert = [];
+
+  // One conversation per role
+  for (const [role, usersForRole] of Object.entries(roleGroups)) {
+    if (!usersForRole.length) continue;
+
+    conversationsToInsert.push({
+      users: usersForRole.map((u) => ({
+        id: u.auth0Id,
+      nickname: u.nickname,
+      })),
+      messages: [],
+      // you can add project/linking fields if you extend schema later, e.g.:
+      // project: project._id,
+      // label: `role:${role}`,
+    });
+  }
+
+  // Conversation with ALL users (unique)
+  const uniqueUsers = Array.from(
+    new Map(users.map((u) => [u.auth0Id.toString(), u])).values()
+  );
+
+  conversationsToInsert.push({
+    users: uniqueUsers.map((u) => ({
+      id: u.auth0Id,
+      nickname: u.nickname,
+    })),
+    messages: [],
+    // project: project._id,
+    // label: "all",
+  });
+
+  const createdConversations = await Conversation.insertMany(
+    conversationsToInsert
+  );
+  return createdConversations;
+}
+
 
 // GET /api/projects/projects
 // Returns projects for the current user using user.projects
