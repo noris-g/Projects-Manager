@@ -11,23 +11,19 @@ export default function ProjectsBar({
   const [projects, setProjects] = useState([
     {
       _id: 1,
-      title: "Proiect Craciun",
+      title: "Christmas Project",
     },
     {
       _id: 2,
-      title: "Proiect Iarna",
+      title: "Winter Project",
     },
     {
       _id: 3,
-      title: "Proiect Birou",
+      title: "Work Project",
     },
     {
       _id: 4,
-      title: "Proiect Foto",
-    },
-    {
-      _id: 5,
-      title: "Proiect Demo",
+      title: "Photography Project",
     },
   ]);
   const [openProjectId, setOpenProjectId] = useState(null);
