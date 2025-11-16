@@ -15,7 +15,7 @@ import InfoPage from "./pages/Info/InfoPage.jsx";
 
 export default function App() {
   const { user, isAuthenticated, isLoading, loginWithRedirect } = useAuth0();
-
+console.log(user)
   const [activePage, setActivePage] = useState("conversations");
 
   // Global state for selected project + conversation

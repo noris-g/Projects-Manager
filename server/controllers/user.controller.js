@@ -11,8 +11,7 @@ const saveUserFromAuth0 = async (req, res) => {
     }
 
     const auth0Id = payload.sub;          // Auth0 user id
-    const email = payload.email;          // may require email scope
-    const name = payload.name;
+    const email = payload.email;
     const nickname = payload.nickname;
 
     if (!auth0Id || !email) {
@@ -21,7 +20,7 @@ const saveUserFromAuth0 = async (req, res) => {
         .json({ message: "auth0Id or email missing from token" });
     }
 
-    const username = nickname || name || email.split("@")[0];
+    const username = nickname || email.split("@")[0];
 
     let user = await User.findOne({ auth0Id });
 
@@ -29,7 +28,7 @@ const saveUserFromAuth0 = async (req, res) => {
       user = await User.create({
         auth0Id,
         email,
-        username,
+        nickname,
       });
     }
 

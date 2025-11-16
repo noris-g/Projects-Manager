@@ -37,7 +37,12 @@ const createProject = async (req, res) => {
       members: [], // empty on creation
     });
 
-        const { members } = req.body;
+    const { members } = req.body;
+
+    project.members.push({
+      userId: user.auth0Id.toString(),
+      role: "owner",
+    });
 
     for (let i = 0; i < members.length; i++) {
       await addUserToProjectService({
@@ -48,13 +53,10 @@ const createProject = async (req, res) => {
     }
 
     // 2. Push user into members AFTER creation
-    project.members.push({
-      userId: user.auth0Id.toString(),
-      role: "owner",
-    });
 
-    await createProjectConversationsService(project._id);
+    const conversations = await createProjectConversationsService(project._id);
 
+    conversations.map((conv) => conv._id);
     // 3. Save updated project
     await project.save();
     // Add project to the user's projects list
@@ -134,24 +136,24 @@ async function createProjectConversationsService(projectId) {
   if (!users.length) {
     throw new Error("No matching users found for project members.");
   }
-  
+
   // Map auth0Id -> User doc
   const userByAuth0Id = new Map(users.map((u) => [u.auth0Id, u]));
-  console.log("THESE ARE THE USERS: ",userByAuth0Id);
+  console.log("THESE ARE THE USERS: ", userByAuth0Id);
 
   // 3. Group users by role
   const roleGroups = {}; // { role: [User] }
 
   for (const member of members) {
     const user = userByAuth0Id.get(member.userId);
-    console.log("***************************************\n", user, "***********************************")
+
     if (!user || !member.role) continue;
 
     if (!roleGroups[member.role]) {
       roleGroups[member.role] = [];
     }
 
-    if (!roleGroups[member.role].some((u) => u.authId.equals(user.auth0Id))) {
+    if (!roleGroups[member.role].some((u) => u.auth0Id === user.auth0Id)) {
       roleGroups[member.role].push(user);
     }
   }
@@ -163,14 +165,13 @@ async function createProjectConversationsService(projectId) {
     if (!usersForRole.length) continue;
 
     conversationsToInsert.push({
+      project: projectId,
+      title: role,
       users: usersForRole.map((u) => ({
         id: u.auth0Id,
-      nickname: u.nickname,
+        nickname: u.nickname,
       })),
       messages: [],
-      // you can add project/linking fields if you extend schema later, e.g.:
-      // project: project._id,
-      // label: `role:${role}`,
     });
   }
 
@@ -180,6 +181,8 @@ async function createProjectConversationsService(projectId) {
   );
 
   conversationsToInsert.push({
+    project: projectId,
+    title: "Everyone",
     users: uniqueUsers.map((u) => ({
       id: u.auth0Id,
       nickname: u.nickname,
@@ -194,7 +197,6 @@ async function createProjectConversationsService(projectId) {
   );
   return createdConversations;
 }
-
 
 // GET /api/projects/projects
 // Returns projects for the current user using user.projects
@@ -213,7 +215,7 @@ const getMyProjects = async (req, res) => {
         .status(404)
         .json({ message: "User not found in database for this auth0Id" });
     }
-
+    console.log(user);
     return res.status(200).json({
       count: user.projects.length,
       projects: user.projects,
@@ -241,7 +243,7 @@ const addUserToProject = async (req, res) => {
     const auth0Id = user?.auth0Id;
 
     if (!user) {
-      return res.status(404).json({ message: `${email } not found.` });
+      return res.status(404).json({ message: `${email} not found.` });
     }
 
     // 2. Find project
@@ -295,16 +297,25 @@ const addUserToProject = async (req, res) => {
   }
 };
 
-
 // GET /api/projects/:projectId
 const getProjectById = async (req, res) => {
   try {
     const { projectId } = req.params;
 
-    const project = await Project.findById(projectId).populate({
-      path: "members.userId",
-      model: "User",
-    });
+    const project = await Project.find({ auth0Id: projectId });
+    if (!project) {
+      throw new Error("Project not found");
+    }
+
+    // members.userId holds auth0Id strings
+    const members = project?.members || [];
+    const auth0Ids = members.map((m) => m.userId);
+
+    // get all users whose auth0Id is in that list
+    const users = await User.find({ auth0Id: { $in: auth0Ids } });
+
+    // handy map: auth0Id -> user document
+    const userByAuth0Id = new Map(users.map((u) => [u.auth0Id, u]));
 
     if (!project) {
       return res.status(404).json({ message: "Project not found" });

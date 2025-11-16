@@ -6,6 +6,7 @@ const {
   getMyProjects,
   getProjectById
 } = require("../controllers/project.controller");
+const { getProjectConversations } = require("../controllers/conversation.controller");
 
 // Create a new project
 router.post("/", createProject);
@@ -15,5 +16,6 @@ router.get("/", getMyProjects);
 
 // ⭐ NEW — Get one project by ID (with populated members)
 router.get("/:projectId", getProjectById);
+router.get("/conversations", getProjectConversations);
 
 module.exports = router;

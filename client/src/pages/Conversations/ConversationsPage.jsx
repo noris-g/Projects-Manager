@@ -26,7 +26,7 @@ export default function ConversationsPage() {
       flag: {
         flaggedByAI: true,
         reason: "Contains outdated info about release date",
-        severity: "medium",
+        severity: "low",
         flaggedAt: new Date(Date.now() - 1000 * 60 * 10), // 10 minutes ago
       },
     },

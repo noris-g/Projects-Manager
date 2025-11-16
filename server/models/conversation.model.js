@@ -1,6 +1,14 @@
 const mongoose = require("mongoose");
 
 const conversationSchema = new mongoose.Schema({
+  project: {
+    type: mongoose.Schema.Types.ObjectId,
+    required: true,
+  },
+  title: {
+    type: String,
+    required: true,
+  },
   users: [
     {
       id: {
@@ -25,13 +33,15 @@ const conversationSchema = new mongoose.Schema({
         ref: "User",
         required: true,
       },
-      flaggedIncorrect: {
-        type: Boolean,
-        default: false,
-      },
-      flaggedMessage: {
-        type: String,
-        default: "",
+      flag: {
+        flaggedByAI: {
+          type: Boolean,
+          default: false,
+        },
+        reason: {
+          type: String,
+          required: true,
+        },
       },
     },
     { timestamps: true },

@@ -44,6 +44,9 @@ const projectSchema = new mongoose.Schema(
         required: true,
       },
     ],
+    conversations: [
+      { type: mongoose.Schema.Types.ObjectId, ref: "Conversation" },
+    ],
 
     events: {
       idEvent: { type: mongoose.Schema.Types.ObjectId, ref: "event" },
