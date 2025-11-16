@@ -1,53 +1,55 @@
 const mongoose = require("mongoose");
 
-const conversationSchema = new mongoose.Schema({
-  project: {
-    type: mongoose.Schema.Types.ObjectId,
-    required: true,
-  },
-  title: {
-    type: String,
-    required: true,
-  },
-  users: [
-    {
-      id: {
-        type: String,
-        ref: "User",
-        required: true,
+const messageSchema = new mongoose.Schema(
+  {
+    content: {
+      type: String,
+      required: true,
+    },
+    senderId: {
+      type: String, // <-- CHANGED from ObjectId to String
+      required: true,
+    },
+    flag: {
+      flaggedByAI: {
+        type: Boolean,
+        default: false,
       },
-      nickname: {
+      reason: {
         type: String,
-        required: true,
+        default: "", // <-- CHANGED, no longer required
       },
     },
-  ],
-  messages: [
-    {
-      content: {
-        type: String,
-        required: true,
-      },
-      senderId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
-        required: true,
-      },
-      flag: {
-        flaggedByAI: {
-          type: Boolean,
-          default: false,
+  },
+  { timestamps: true }
+);
+
+const conversationSchema = new mongoose.Schema(
+  {
+    project: {
+      type: mongoose.Schema.Types.ObjectId,
+      required: true,
+      ref: "Project",
+    },
+    title: {
+      type: String,
+      required: true,
+    },
+    users: [
+      {
+        id: {
+          type: String, // if you want ObjectId, change to Schema.Types.ObjectId
+          required: true,
         },
-        reason: {
+        nickname: {
           type: String,
           required: true,
         },
       },
-    },
-    { timestamps: true },
-  ],
-});
+    ],
+    messages: [messageSchema], // <-- FIXED, timestamps now apply correctly
+  },
+  { timestamps: true }
+);
 
-const Conversation = mongoose.model("Conversation", conversationSchema);
-
-module.exports = Conversation;
+module.exports = mongoose.model("Conversation", conversationSchema);

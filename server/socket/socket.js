@@ -4,7 +4,6 @@ const { Server } = require("socket.io");
 const User = require("../models/user.model");
 
 const app = express();
-
 const server = http.createServer(app);
 
 const io = new Server(server, {
@@ -13,44 +12,23 @@ const io = new Server(server, {
     methods: ["GET", "POST"],
   },
 });
+// Load conversation socket logic
+require("./conversation.socket")(io);
 
-const onlineUsers = {};
-const usersCurrentConversation = {};
+io.on("connection", (socket) => {
+  console.log("Client connected:", socket.id);
 
-io.on("connection", async (socket) => {
-  const userId = socket.handshake.query.userId;
-  if (userId) {
-    onlineUsers[userId] = socket.id;
-  }
-  const user = await User.findById(userId); 
-  const conversations = user.conversations;
-  conversations.forEach((conversation) => {
-    const currentConversation = usersCurrentConversation[conversation.id];
-    if (currentConversation == conversation.ID) {
-      const receiverSocketId = onlineUsers[conversation.id];
-      io.to(receiverSocketId).emit("online");
-    } 
-  });
-  socket.on("setCurrentConversation", (currentConversationId) => {
-    usersCurrentConversation[userId] = currentConversationId;
-  });
-  socket.on("disconnect", () => {
-    conversations.forEach((conversation) => {
-      const currentConversation = usersCurrentConversation[conversation.id];
-      if (currentConversation == conversation.ID) {
-        const receiverSocketId = onlineUsers[conversation.id];
-        io.to(receiverSocketId).emit("offline");
-      }
-    });
-    delete onlineUsers[userId];
-    delete usersCurrentConversation[userId];
+  // 1️⃣ Listen for client sending a message
+  socket.on("send_message", (data) => {
+    console.log("📩 Message received on server:", data);
+
+    // optional: save to database here...
+
+    // 2️⃣ Emit to ALL other clients in the conversation
+    io.emit("new_message", data); 
+    // (we will refine this to room-based later)
   });
 });
 
-module.exports = {
-  server,
-  app,
-  io,
-  onlineUsers,
-  usersCurrentConversation,
-};
+// ... keep your online user logic here ...
+module.exports = { server, app, io };
